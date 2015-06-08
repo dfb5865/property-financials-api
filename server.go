@@ -36,7 +36,7 @@ func formatPrice(price string) float64 {
 
 func main() {
 	router := mux.NewRouter().StrictSlash(true)
-	router.HandleFunc("/API", Home)
+	router.HandleFunc("/API/", Home)
 	router.HandleFunc("/API/property", GetPropertyData).Queries("url", "")
 	log.Fatal(http.ListenAndServe(":8080", router))
 }
