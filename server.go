@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"encoding/json"
 	"log"
 	"net/http"
@@ -35,8 +36,16 @@ func formatPrice(price string) float64 {
 
 func main() {
 	router := mux.NewRouter().StrictSlash(true)
+	router.HandleFunc("/API", Home)
 	router.HandleFunc("/API/property", GetPropertyData).Queries("url", "")
 	log.Fatal(http.ListenAndServe(":8080", router))
+}
+
+func Home(w http.ResponseWriter, r *http.Request) {
+	fmt.Fprintln(w, "Welcome to the property-financials API")
+	fmt.Fprintln(w, "Currently there is one endpoint \"property\"")
+	fmt.Fprintln(w, "Right now it will grab address, price, monthy HOA fees, and yearly property taxes and return them in json")
+	fmt.Fprintln(w, "API Usage: http://propertyfinancialsa-env.elasticbeanstalk.com/API/property?url=<zillow link>")
 }
 
 func GetPropertyData(w http.ResponseWriter, r *http.Request) {
