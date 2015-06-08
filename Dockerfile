@@ -11,6 +11,6 @@ WORKDIR /gopath/src/github.com/dfb5865/property-financials-api
 # install our dependencies
 RUN godep restore
 
-EXPOSE 8081
+EXPOSE 8080
 CMD []
 ENTRYPOINT ["/gopath/bin/property-financials-api"]
