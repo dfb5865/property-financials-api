@@ -18,10 +18,6 @@
 		{
 			"ImportPath": "github.com/gorilla/mux",
 			"Rev": "47e8f450ef38c857cdd922ec08862ca9d65a1c6d"
-		},
-		{
-			"ImportPath": "golang.org/x/net/html",
-			"Rev": "dfe268fd2bb5c793f4c083803609fce9806c6f80"
 		}
 	]
 }
