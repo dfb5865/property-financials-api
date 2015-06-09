@@ -1,7 +1,6 @@
 package main
 
 import (
-	"fmt"
 	"encoding/json"
 	"log"
 	"net/http"
@@ -21,9 +20,18 @@ type PropertyData struct {
 }
 
 func formatPrice(price string) float64 {
+	//regex for price
 	dollarAmountRegex := regexp.MustCompile(`^([-+] ?)?[0-9]+(,[0-9]+)?$`)
-	trimmed := strings.Replace(strings.TrimLeft(strings.TrimSpace(price), "$"), ",", "", -1)
-	match := dollarAmountRegex.FindStringSubmatch(trimmed)
+
+	trimmedWhiteSpace := strings.TrimSpace(price)
+	stripDollars := strings.Replace(strings.TrimLeft(trimmedWhiteSpace, "$"), ",", "", -1)
+
+	if strings.ToLower(stripDollars) == "off market" {
+		return -1
+	}
+
+	match := dollarAmountRegex.FindStringSubmatch(stripDollars)
+
 	if len(match) > 0 {
 		i, err := strconv.ParseFloat(match[0], 64)
 		if err != nil {
@@ -31,21 +39,14 @@ func formatPrice(price string) float64 {
 		}
 		return i
 	}
+
 	panic("Problem")
 }
 
 func main() {
 	router := mux.NewRouter().StrictSlash(true)
-	router.HandleFunc("/API/", Home)
-	router.HandleFunc("/API/property", GetPropertyData).Queries("url", "")
+	router.HandleFunc("/api/property", GetPropertyData).Queries("url", "")
 	log.Fatal(http.ListenAndServe(":8080", router))
-}
-
-func Home(w http.ResponseWriter, r *http.Request) {
-	fmt.Fprintln(w, "Welcome to the property-financials API")
-	fmt.Fprintln(w, "Currently there is one endpoint \"property\"")
-	fmt.Fprintln(w, "Right now it will grab address, price, monthy HOA fees, and yearly property taxes and return them in json")
-	fmt.Fprintln(w, "API Usage: http://propertyfinancialsa-env.elasticbeanstalk.com/API/property?url=<zillow link>")
 }
 
 func GetPropertyData(w http.ResponseWriter, r *http.Request) {
@@ -68,8 +69,27 @@ func GetPropertyData(w http.ResponseWriter, r *http.Request) {
 	//Find price from zillow
 	doc.Find(".main-row.home-summary-row").Each(func(_ int, node *goquery.Selection) {
 		text := node.Text()
-		data.Price = formatPrice(text)
+		price := formatPrice(text)
+		if price > 0 {
+			data.Price = price
+		}
 	})
+
+	//fall back to zestimate if there is no price
+	if data.Price <= 0 {
+		doc.Find(".estimates").Children().Each(func(i int, node *goquery.Selection) {
+			if i == 1 {
+				node.Find("span").Each(func(i int, spanNode *goquery.Selection) {
+					if i == 1 {
+						text := spanNode.Text()
+						price := formatPrice(text)
+						data.Price = price
+					}
+				})
+			}
+
+		})
+	}
 
 	//Find HOA fees
 	hoaRegex := regexp.MustCompile(`(?i)hoa fee: \$[0-9]*\/mo`)
