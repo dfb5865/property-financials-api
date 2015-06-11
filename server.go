@@ -2,7 +2,6 @@ package main
 
 import (
 	"encoding/json"
-	"fmt"
 	"log"
 	"net/http"
 	"regexp"
@@ -59,7 +58,7 @@ func formatPrice(price string) float64 {
 
 func main() {
 	router := mux.NewRouter().StrictSlash(true)
-	router.HandleFunc("/api/property", GetPropertyData).Queries("url", "")
+	router.HandleFunc("/API/property", GetPropertyData).Queries("url", "")
 	log.Fatal(http.ListenAndServe(":8080", router))
 }
 
@@ -147,7 +146,6 @@ func GetPropertyData(w http.ResponseWriter, r *http.Request) {
 	querystring := map[string]string{"key": "Zillow-hMy7jKq4fmM69782Q4m18", "zip": zip, "sqft": sqft, "est": strconv.FormatFloat(data.Price, 'f', 6, 64), "pid": zpid, "year": year, "per": "mo"}
 
 	_, err = api.Res("get_estimates", resp).Get(querystring)
-	fmt.Println(resp.Rate)
 	if err == nil {
 		data.Insurance = resp.Rate
 	}
