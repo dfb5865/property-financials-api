@@ -14,11 +14,12 @@ import (
 )
 
 type PropertyData struct {
-	Address   string
-	Price     float64
-	HoaFee    float64
-	Tax       float64
-	Insurance int
+	Address     string
+	Price       float64
+	MonthlyRent float64
+	HoaFee      float64
+	Tax         float64
+	Insurance   int
 }
 
 type insuranceEstimateResponse struct {
@@ -109,10 +110,21 @@ func GetPropertyData(w http.ResponseWriter, r *http.Request) {
 		})
 	}
 
+	//Find Rent Zestimate
+	priceRegex := regexp.MustCompile(`\$[0-9]+(,[0-9]+)?`)
+	doc.Find(".zest-title").Each(func(_ int, node *goquery.Selection) {
+		text := node.Text()
+		if strings.Contains(strings.ToLower(text), "rent") {
+			rentText := node.Parent().Find(".zest-value").Text()
+			price := priceRegex.FindStringSubmatch(rentText)
+			if len(price) > 0 {
+				data.MonthlyRent = formatPrice(price[0])
+			}
+		}
+	})
+
 	//Find HOA fees
 	hoaRegex := regexp.MustCompile(`(?i)hoa fee: \$[0-9]*\/mo`)
-	priceRegex := regexp.MustCompile(`\$[0-9]+(,[0-9]+)?`)
-
 	doc.Find(".fact-group-container.zsg-content-component.top-facts").Each(func(_ int, node *goquery.Selection) {
 		text := node.Text()
 		if hoaRegex.MatchString(text) {
