@@ -32,6 +32,12 @@ type insuranceEstimateResponse struct {
 	Errors    []string
 }
 
+func main() {
+	router := mux.NewRouter().StrictSlash(true)
+	router.HandleFunc("/api/property", GetPropertyData).Queries("url", "")
+	log.Fatal(http.ListenAndServe(":8080", router))
+}
+
 func formatPrice(price string) float64 {
 	//regex for price
 	dollarAmountRegex := regexp.MustCompile(`^([-+] ?)?[0-9]+(,[0-9]+)?$`)
@@ -53,19 +59,11 @@ func formatPrice(price string) float64 {
 		return i
 	}
 
-	panic("Problem")
-}
-
-func main() {
-	router := mux.NewRouter().StrictSlash(true)
-	router.HandleFunc("/api/property", GetPropertyData).Queries("url", "")
-	log.Fatal(http.ListenAndServe(":8080", router))
+	return 0
 }
 
 func GetPropertyData(w http.ResponseWriter, r *http.Request) {
-	if origin := r.Header.Get("Origin"); origin != "" {
-		w.Header().Set("Access-Control-Allow-Origin", origin)
-	}
+	w.Header().Set("Access-Control-Allow-Origin", "*")
 	w.Header().Set("Access-Control-Allow-Methods", "POST, GET, OPTIONS, PUT, DELETE")
 	w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Content-Length, Accept-Encoding, X-CSRF-Token")
 	w.Header().Set("Access-Control-Allow-Credentials", "true")
