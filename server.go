@@ -2,6 +2,7 @@ package main
 
 import (
 	"encoding/json"
+	"fmt"
 	"log"
 	"net/http"
 	"regexp"
@@ -14,12 +15,13 @@ import (
 )
 
 type PropertyData struct {
-	Address     string
-	Price       float64
-	MonthlyRent float64
-	HoaFee      float64
-	Tax         float64
-	Insurance   int
+	Address          string  `json:"address"`
+	Price            float64 `json:"purchasePrice"`
+	MonthlyRent      float64 `json:"monthlyRent"`
+	HoaFee           float64 `json:"monthlyHoa"`
+	Tax              float64 `json:"monthlyTax"`
+	Insurance        int     `json:"monthlyInsurance"`
+	AppreciationRate float64 `json:"yearlyAppreciationRate"`
 }
 
 type insuranceEstimateResponse struct {
@@ -61,6 +63,15 @@ func formatPrice(price string) float64 {
 	}
 
 	return 0
+}
+
+func stringInSlice(a string, list []string) bool {
+	for _, b := range list {
+		if b == a {
+			return true
+		}
+	}
+	return false
 }
 
 func GetPropertyData(w http.ResponseWriter, r *http.Request) {
@@ -186,6 +197,30 @@ func GetPropertyData(w http.ResponseWriter, r *http.Request) {
 	_, err = api.Res("get_estimates", resp).Get(querystring)
 	if err == nil {
 		data.Insurance = resp.Rate
+	}
+
+	//Get neighborhood data (appreciation value)
+	neighborhoodText := doc.Find("#hdp-neighborhood h4.zsg-content_collapsed").Parent().Text()
+	matchSurroundingDecimal := regexp.MustCompile(`\s[a-zA-Z]+\s\d*.\d*%`)
+
+	appreciationMatch := matchSurroundingDecimal.FindStringSubmatch(neighborhoodText)
+	if len(appreciationMatch) > 0 {
+		directionAndMagnitude := appreciationMatch[0]
+		fmt.Println(directionAndMagnitude)
+		splitVector := strings.Split(directionAndMagnitude, " ")
+		directionText := strings.ToLower(splitVector[1])
+		magnitude, _ := strconv.ParseFloat(strings.Replace(splitVector[2], "%", "", -1), 64)
+
+		positiveStrings := []string{"increased", "increase", "rise", "rose"}
+		negativeStrings := []string{"fall", "fell", "decrease", "decreased"}
+
+		if stringInSlice(directionText, positiveStrings) {
+			data.AppreciationRate = magnitude
+		}
+
+		if stringInSlice(directionText, negativeStrings) {
+			data.AppreciationRate = magnitude * -1
+		}
 	}
 
 	jsonData, err := json.Marshal(data)
