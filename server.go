@@ -2,6 +2,7 @@ package main
 
 import (
 	"encoding/json"
+	"fmt"
 	"log"
 	"net/http"
 	"regexp"
@@ -9,14 +10,27 @@ import (
 	"strings"
 
 	"github.com/PuerkitoBio/goquery"
+	"github.com/bndr/gopencils"
 	"github.com/gorilla/mux"
 )
 
 type PropertyData struct {
-	Address string
-	Price   float64
-	HoaFee  float64
-	Tax     float64
+	Address   string
+	Price     float64
+	HoaFee    float64
+	Tax       float64
+	Insurance int
+}
+
+type insuranceEstimateResponse struct {
+	Status    string
+	Title     string
+	Icon      string
+	Link_text string
+	Link_ref  string
+	Rate      int
+	Per       string
+	Errors    []string
 }
 
 func formatPrice(price string) float64 {
@@ -87,7 +101,6 @@ func GetPropertyData(w http.ResponseWriter, r *http.Request) {
 					}
 				})
 			}
-
 		})
 	}
 
@@ -117,6 +130,27 @@ func GetPropertyData(w http.ResponseWriter, r *http.Request) {
 			}
 		}
 	})
+
+	//https://homerates.honestpolicy.com/get_estimates?key=Zillow-hMy7jKq4fmM69782Q4m18&zip=12159&sqft=3000&est=438968&pid=29710887&year=1990&per=mo
+	//use this api to get insurance estimates
+	api := gopencils.Api("https://homerates.honestpolicy.com/")
+
+	// Create a pointer to our response struct
+	resp := &insuranceEstimateResponse{}
+
+	zpid, _ := doc.Find("#zpidParam").Attr("value")
+	zip := "92620" //fix this
+	sqft := "3000" //fix this
+	year := "2000" //fix this
+
+	// Perform a GET request with Querystring
+	querystring := map[string]string{"key": "Zillow-hMy7jKq4fmM69782Q4m18", "zip": zip, "sqft": sqft, "est": strconv.FormatFloat(data.Price, 'f', 6, 64), "pid": zpid, "year": year, "per": "mo"}
+
+	_, err = api.Res("get_estimates", resp).Get(querystring)
+	fmt.Println(resp.Rate)
+	if err == nil {
+		data.Insurance = resp.Rate
+	}
 
 	jsonData, err := json.Marshal(data)
 	if err != nil {

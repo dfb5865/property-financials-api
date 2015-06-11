@@ -1,5 +1,5 @@
 {
-	"ImportPath": "github.com/dfb5865/property-financials/src/server",
+	"ImportPath": "github.com/dfb5865/property-financials-api",
 	"GoVersion": "go1.4.2",
 	"Deps": [
 		{
@@ -12,12 +12,20 @@
 			"Rev": "6122e68c2642b7b75c538a63b15168c6c80fb757"
 		},
 		{
+			"ImportPath": "github.com/bndr/gopencils",
+			"Rev": "e9c8039cf77402adfa4a6ae94bd7b3416f77c0a4"
+		},
+		{
 			"ImportPath": "github.com/gorilla/context",
 			"Rev": "215affda49addc4c8ef7e2534915df2c8c35c6cd"
 		},
 		{
 			"ImportPath": "github.com/gorilla/mux",
 			"Rev": "47e8f450ef38c857cdd922ec08862ca9d65a1c6d"
+		},
+		{
+			"ImportPath": "golang.org/x/net/html",
+			"Rev": "dfe268fd2bb5c793f4c083803609fce9806c6f80"
 		}
 	]
 }
