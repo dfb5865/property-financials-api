@@ -2,6 +2,7 @@ package main
 
 import (
 	"encoding/json"
+	"fmt"
 	"log"
 	"net/http"
 	"regexp"
@@ -40,7 +41,7 @@ func main() {
 
 func formatPrice(price string) float64 {
 	//regex for price
-	dollarAmountRegex := regexp.MustCompile(`^([-+] ?)?[0-9]+(,[0-9]+)?$`)
+	numberRegex := regexp.MustCompile(`^([-+] ?)?[0-9]+(,[0-9]+)?$`)
 
 	trimmedWhiteSpace := strings.TrimSpace(price)
 	stripDollars := strings.Replace(strings.TrimLeft(trimmedWhiteSpace, "$"), ",", "", -1)
@@ -49,7 +50,7 @@ func formatPrice(price string) float64 {
 		return -1
 	}
 
-	match := dollarAmountRegex.FindStringSubmatch(stripDollars)
+	match := numberRegex.FindStringSubmatch(stripDollars)
 
 	if len(match) > 0 {
 		i, err := strconv.ParseFloat(match[0], 64)
@@ -67,6 +68,7 @@ func GetPropertyData(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Access-Control-Allow-Methods", "POST, GET, OPTIONS, PUT, DELETE")
 	w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Content-Length, Accept-Encoding, X-CSRF-Token")
 	w.Header().Set("Access-Control-Allow-Credentials", "true")
+	w.Header().Set("Content-Type", "application/json")
 
 	params := r.URL.Query()
 	url := params.Get("url")
@@ -130,7 +132,7 @@ func GetPropertyData(w http.ResponseWriter, r *http.Request) {
 			cost := parent.Find(".vendor-cost").Text()
 			price := priceRegex.FindStringSubmatch(cost)
 			if len(price) > 0 {
-				data.Tax = formatPrice(price[0])
+				data.Tax = formatPrice(price[0]) / 12
 			}
 		}
 	})
@@ -143,9 +145,32 @@ func GetPropertyData(w http.ResponseWriter, r *http.Request) {
 	resp := &insuranceEstimateResponse{}
 
 	zpid, _ := doc.Find("#zpidParam").Attr("value")
-	zip := "92620" //fix this
-	sqft := "3000" //fix this
-	year := "2000" //fix this
+	zip, _ := doc.Find("#loan-calculator-container").Attr("data-property-zipcode")
+	sqft := ""
+	doc.Find("span.addr_bbs").Each(func(_ int, node *goquery.Selection) {
+		text := node.Text()
+		sqftRegex := regexp.MustCompile(`^([-+] ?)?[0-9]+(,[0-9]+)? sqft$`)
+		match := sqftRegex.FindStringSubmatch(text)
+		if len(match) > 0 {
+			numberRegex := regexp.MustCompile(`^([-+] ?)?[0-9]+(,[0-9]+)?`)
+			sqft = numberRegex.FindStringSubmatch(match[0])[0]
+		}
+	})
+	year := ""
+	doc.Find("div.hdp-facts .fact-group-container ul").Each(func(_ int, node *goquery.Selection) {
+		text := node.Text()
+		yearBuiltRegex := regexp.MustCompile(`(?i)built in \d{4}`)
+		match := yearBuiltRegex.FindStringSubmatch(text)
+		if len(match) > 0 {
+			numberRegex := regexp.MustCompile(`\d{4}`)
+			year = numberRegex.FindStringSubmatch(match[0])[0]
+		}
+	})
+
+	fmt.Println(sqft)
+	fmt.Println(zip)
+	fmt.Println(year)
+	fmt.Println(zpid)
 
 	// Perform a GET request with Querystring
 	querystring := map[string]string{"key": "Zillow-hMy7jKq4fmM69782Q4m18", "zip": zip, "sqft": sqft, "est": strconv.FormatFloat(data.Price, 'f', 6, 64), "pid": zpid, "year": year, "per": "mo"}
