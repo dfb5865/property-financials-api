@@ -58,12 +58,18 @@ func formatPrice(price string) float64 {
 
 func main() {
 	router := mux.NewRouter().StrictSlash(true)
-	router.Headers("Access-Control-Allow-Origin: *")
 	router.HandleFunc("/api/property", GetPropertyData).Queries("url", "")
 	log.Fatal(http.ListenAndServe(":8080", router))
 }
 
 func GetPropertyData(w http.ResponseWriter, r *http.Request) {
+	if origin := r.Header.Get("Origin"); origin != "" {
+		w.Header().Set("Access-Control-Allow-Origin", origin)
+	}
+	w.Header().Set("Access-Control-Allow-Methods", "POST, GET, OPTIONS, PUT, DELETE")
+	w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Content-Length, Accept-Encoding, X-CSRF-Token")
+	w.Header().Set("Access-Control-Allow-Credentials", "true")
+
 	params := r.URL.Query()
 	url := params.Get("url")
 
