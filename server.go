@@ -2,7 +2,6 @@ package main
 
 import (
 	"encoding/json"
-	"fmt"
 	"log"
 	"net/http"
 	"regexp"
@@ -149,11 +148,11 @@ func GetPropertyData(w http.ResponseWriter, r *http.Request) {
 	sqft := ""
 	doc.Find("span.addr_bbs").Each(func(_ int, node *goquery.Selection) {
 		text := node.Text()
-		sqftRegex := regexp.MustCompile(`^([-+] ?)?[0-9]+(,[0-9]+)? sqft$`)
+		sqftRegex := regexp.MustCompile(`^([-+] ?)?[0-9]+(,[0-9]+)? (sqft|square)$`)
 		match := sqftRegex.FindStringSubmatch(text)
 		if len(match) > 0 {
 			numberRegex := regexp.MustCompile(`^([-+] ?)?[0-9]+(,[0-9]+)?`)
-			sqft = numberRegex.FindStringSubmatch(match[0])[0]
+			sqft = strings.Replace(numberRegex.FindStringSubmatch(match[0])[0], ",", "", -1)
 		}
 	})
 	year := ""
@@ -167,13 +166,10 @@ func GetPropertyData(w http.ResponseWriter, r *http.Request) {
 		}
 	})
 
-	fmt.Println(sqft)
-	fmt.Println(zip)
-	fmt.Println(year)
-	fmt.Println(zpid)
+	insurancePrice := strconv.FormatFloat(data.Price, 'f', 0, 64)
 
 	// Perform a GET request with Querystring
-	querystring := map[string]string{"key": "Zillow-hMy7jKq4fmM69782Q4m18", "zip": zip, "sqft": sqft, "est": strconv.FormatFloat(data.Price, 'f', 6, 64), "pid": zpid, "year": year, "per": "mo"}
+	querystring := map[string]string{"key": "Zillow-hMy7jKq4fmM69782Q4m18", "zip": zip, "sqft": sqft, "est": insurancePrice, "pid": zpid, "year": year, "per": "mo"}
 
 	_, err = api.Res("get_estimates", resp).Get(querystring)
 	if err == nil {
