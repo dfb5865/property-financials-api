@@ -107,22 +107,22 @@ func GetPropertyData(w http.ResponseWriter, r *http.Request) {
 	})
 
 	//fall back to zestimate if there is no price
+	priceRegex := regexp.MustCompile(`\$[0-9]+(,[0-9]+)?`)
 	if data.Price <= 0 {
-		doc.Find(".estimates").Children().Each(func(i int, node *goquery.Selection) {
-			if i == 1 {
-				node.Find("span").Each(func(i int, spanNode *goquery.Selection) {
-					if i == 1 {
-						text := spanNode.Text()
-						price := formatPrice(text)
-						data.Price = price
-					}
-				})
+		doc.Find(".zest-title").Each(func(_ int, node *goquery.Selection) {
+			text := node.Text()
+			if !strings.Contains(strings.ToLower(text), "rent") && !strings.Contains(strings.ToLower(text), "forecast") {
+				rentText := node.Parent().Find(".zest-value").Text()
+				fmt.Println(rentText)
+				price := priceRegex.FindStringSubmatch(rentText)
+				if len(price) > 0 {
+					data.Price = formatPrice(price[0])
+				}
 			}
 		})
 	}
 
 	//Find Rent Zestimate
-	priceRegex := regexp.MustCompile(`\$[0-9]+(,[0-9]+)?`)
 	doc.Find(".zest-title").Each(func(_ int, node *goquery.Selection) {
 		text := node.Text()
 		if strings.Contains(strings.ToLower(text), "rent") {
@@ -202,11 +202,9 @@ func GetPropertyData(w http.ResponseWriter, r *http.Request) {
 	//Get neighborhood data (appreciation value)
 	neighborhoodText := doc.Find("#hdp-neighborhood h4.zsg-content_collapsed").Parent().Text()
 	matchSurroundingDecimal := regexp.MustCompile(`\s[a-zA-Z]+\s\d*.\d*%`)
-
 	appreciationMatch := matchSurroundingDecimal.FindStringSubmatch(neighborhoodText)
 	if len(appreciationMatch) > 0 {
 		directionAndMagnitude := appreciationMatch[0]
-		fmt.Println(directionAndMagnitude)
 		splitVector := strings.Split(directionAndMagnitude, " ")
 		directionText := strings.ToLower(splitVector[1])
 		magnitude, _ := strconv.ParseFloat(strings.Replace(splitVector[2], "%", "", -1), 64)
