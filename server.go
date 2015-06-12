@@ -2,7 +2,6 @@ package main
 
 import (
 	"encoding/json"
-	"fmt"
 	"log"
 	"net/http"
 	"regexp"
@@ -113,7 +112,6 @@ func GetPropertyData(w http.ResponseWriter, r *http.Request) {
 			text := node.Text()
 			if !strings.Contains(strings.ToLower(text), "rent") && !strings.Contains(strings.ToLower(text), "forecast") {
 				rentText := node.Parent().Find(".zest-value").Text()
-				fmt.Println(rentText)
 				price := priceRegex.FindStringSubmatch(rentText)
 				if len(price) > 0 {
 					data.Price = formatPrice(price[0])
