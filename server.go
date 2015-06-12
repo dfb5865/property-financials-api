@@ -2,7 +2,6 @@ package main
 
 import (
 	"encoding/json"
-	"fmt"
 	"log"
 	"net/http"
 	"regexp"
@@ -22,6 +21,7 @@ type PropertyData struct {
 	Tax              float64 `json:"monthlyTax"`
 	Insurance        int     `json:"monthlyInsurance"`
 	AppreciationRate float64 `json:"yearlyAppreciationRate"`
+	Year             float64 `json:"yearBuilt"`
 }
 
 type insuranceEstimateResponse struct {
@@ -56,9 +56,7 @@ func formatPrice(price string) float64 {
 
 	if len(match) > 0 {
 		i, err := strconv.ParseFloat(match[0], 64)
-		if err != nil {
-			panic(err)
-		}
+		check(err)
 		return i
 	}
 
@@ -74,6 +72,13 @@ func stringInSlice(a string, list []string) bool {
 	return false
 }
 
+// fatal if there is an error
+func check(err error) {
+	if err != nil {
+		log.Fatal(err)
+	}
+}
+
 func GetPropertyData(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Access-Control-Allow-Origin", "*")
 	w.Header().Set("Access-Control-Allow-Methods", "POST, GET, OPTIONS, PUT, DELETE")
@@ -85,9 +90,7 @@ func GetPropertyData(w http.ResponseWriter, r *http.Request) {
 	url := params.Get("url")
 
 	doc, err := goquery.NewDocument(url)
-	if err != nil {
-		log.Fatal(err)
-	}
+	check(err)
 
 	data := new(PropertyData)
 
@@ -186,6 +189,8 @@ func GetPropertyData(w http.ResponseWriter, r *http.Request) {
 		if len(match) > 0 {
 			numberRegex := regexp.MustCompile(`\d{4}`)
 			year = numberRegex.FindStringSubmatch(match[0])[0]
+			data.Year, err = strconv.ParseFloat(year, 64)
+			check(err)
 		}
 	})
 
@@ -195,9 +200,7 @@ func GetPropertyData(w http.ResponseWriter, r *http.Request) {
 	querystring := map[string]string{"key": "Zillow-hMy7jKq4fmM69782Q4m18", "zip": zip, "sqft": sqft, "est": insurancePrice, "pid": zpid, "year": year, "per": "mo"}
 
 	_, err = api.Res("get_estimates", resp).Get(querystring)
-	if err == nil {
-		data.Insurance = resp.Rate
-	}
+	check(err)
 
 	//Get neighborhood data (appreciation value)
 	neighborhoodText := doc.Find("#hdp-neighborhood h4.zsg-content_collapsed").Parent().Text()
@@ -206,7 +209,6 @@ func GetPropertyData(w http.ResponseWriter, r *http.Request) {
 	appreciationMatch := matchSurroundingDecimal.FindStringSubmatch(neighborhoodText)
 	if len(appreciationMatch) > 0 {
 		directionAndMagnitude := appreciationMatch[0]
-		fmt.Println(directionAndMagnitude)
 		splitVector := strings.Split(directionAndMagnitude, " ")
 		directionText := strings.ToLower(splitVector[1])
 		magnitude, _ := strconv.ParseFloat(strings.Replace(splitVector[2], "%", "", -1), 64)
@@ -224,9 +226,7 @@ func GetPropertyData(w http.ResponseWriter, r *http.Request) {
 	}
 
 	jsonData, err := json.Marshal(data)
-	if err != nil {
-		log.Fatal(err)
-	}
+	check(err)
 
 	w.Write(jsonData)
 }
